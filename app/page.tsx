@@ -1,103 +1,223 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar, CheckCircle, Clock, Heart, Star, Target, TrendingUp } from "lucide-react"
+
+export default function Dashboard() {
+  const [currentTime] = useState(new Date())
+
+  const examCountdown = {
+    upsc: Math.ceil((new Date("2026-06-07").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
+    cat: Math.ceil((new Date("2025-11-24").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
+  }
+
+  const todaysTasks = [
+    {
+      id: 1,
+      title: "Current Affairs - January 2025",
+      subject: "Current Affairs",
+      exam: "UPSC",
+      priority: "high",
+      completed: false,
+    },
+    {
+      id: 2,
+      title: "Quantitative Aptitude - Percentages",
+      subject: "Quantitative Aptitude",
+      exam: "CAT",
+      priority: "medium",
+      completed: true,
+    },
+    {
+      id: 3,
+      title: "Polity - Fundamental Rights",
+      subject: "Polity",
+      exam: "UPSC",
+      priority: "high",
+      completed: false,
+    },
+  ]
+
+  const subjectProgress = [
+    { name: "Quantitative Aptitude", progress: 75, exam: "CAT" },
+    { name: "Verbal Ability", progress: 60, exam: "CAT" },
+    { name: "Logical Reasoning", progress: 45, exam: "CAT" },
+    { name: "Polity", progress: 80, exam: "UPSC" },
+    { name: "Economy", progress: 55, exam: "UPSC" },
+    { name: "Current Affairs", progress: 90, exam: "UPSC" },
+  ]
+
+  const motivationalQuote =
+    "Success is not final, failure is not fatal: it is the courage to continue that counts. You've got this, Pari! 🌟"
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Welcome back, Pari! 🌸
+          </h1>
+          <p className="text-lg text-gray-600">Ready to conquer your dreams today?</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Exam Countdown Cards */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-100 to-pink-100">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-purple-700">UPSC 2026</CardTitle>
+              <CardDescription className="text-lg">Your IAS Dream</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <div className="text-4xl font-bold text-purple-800 mb-2">{examCountdown.upsc}</div>
+              <p className="text-purple-600">days to go</p>
+              <div className="mt-4 p-3 bg-white rounded-lg">
+                <Target className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-purple-700">IAS 2026 🎯</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-indigo-200 bg-gradient-to-r from-indigo-100 to-blue-100">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold text-indigo-700">CAT 2025</CardTitle>
+              <CardDescription className="text-lg">MBA Gateway</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <div className="text-4xl font-bold text-indigo-800 mb-2">{examCountdown.cat}</div>
+              <p className="text-indigo-600">days to go</p>
+              <div className="mt-4 p-3 bg-white rounded-lg">
+                <TrendingUp className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-indigo-700">Top B-School 📈</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Today's Tasks */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              Today&apos;s Tasks
+            </CardTitle>
+            <CardDescription>Stay focused, stay strong! 💪</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {todaysTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full ${task.completed ? "bg-green-500" : "bg-gray-300"}`} />
+                    <div>
+                      <p className={`font-medium ${task.completed ? "line-through text-gray-500" : "text-gray-900"}`}>
+                        {task.title}
+                      </p>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {task.exam}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {task.subject}
+                        </Badge>
+                        <Badge variant={task.priority === "high" ? "destructive" : "secondary"} className="text-xs">
+                          {task.priority}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    <Clock className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Progress Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              Subject Progress
+            </CardTitle>
+            <CardDescription>Look how far you&apos;ve come! 🚀</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              {subjectProgress.map((subject) => (
+                <div key={subject.name} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">{subject.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {subject.exam}
+                      </Badge>
+                      <span className="text-sm text-gray-600">{subject.progress}%</span>
+                    </div>
+                  </div>
+                  <Progress value={subject.progress} className="h-2" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Motivation Corner */}
+        <Card className="border-2 border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-700">
+              <Heart className="w-5 h-5 text-red-500" />
+              Daily Motivation from ullu 🐥
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center p-4">
+              <p className="text-lg italic text-gray-700 mb-4">&quot;{motivationalQuote}&quot;</p>
+              <div className="flex justify-center gap-4">
+                <Button variant="outline" className="bg-white">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Plan Today
+                </Button>
+                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">Start Studying</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold text-green-600">127</div>
+              <p className="text-sm text-gray-600">Tasks Completed</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold text-blue-600">45</div>
+              <p className="text-sm text-gray-600">Study Hours</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold text-purple-600">23</div>
+              <p className="text-sm text-gray-600">Notes Created</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold text-orange-600">12</div>
+              <p className="text-sm text-gray-600">Day Streak</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
