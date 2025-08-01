@@ -39,8 +39,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   const examCountdown = {
-    upsc: Math.ceil((new Date("2026-06-07").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
-    cat: Math.ceil((new Date("2025-11-24").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
+    upsc: Math.ceil((new Date("2027-06-07").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
+    cat: Math.ceil((new Date("2026-11-24").getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)),
   }
 
   useEffect(() => {
