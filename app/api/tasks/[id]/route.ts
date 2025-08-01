@@ -4,11 +4,12 @@ import { Exam, Priority } from '@/app/generated/prisma'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
-    const task = await updateTask(params.id, {
+    const { id } = await params
+    const task = await updateTask(id, {
       title: body.title,
       description: body.description,
       subject: body.subject,
@@ -26,10 +27,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await deleteTask(params.id)
+    const { id } = await params
+    await deleteTask(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting task:', error)

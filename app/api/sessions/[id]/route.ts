@@ -3,11 +3,12 @@ import { updateStudySession, deleteStudySession } from '@/lib/db'
 import { Exam, SessionType } from '@/app/generated/prisma'
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
-    const session = await updateStudySession(params.id, {
+    const { id } = await params
+    const session = await updateStudySession(id, {
       title: body.title,
       subject: body.subject,
       exam: body.exam as Exam,
@@ -27,10 +28,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await deleteStudySession(params.id)
+    const { id } = await params
+    await deleteStudySession(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting session:', error)

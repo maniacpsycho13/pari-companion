@@ -38,7 +38,7 @@ interface Task {
 export default function TodoManagement() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
-  const [newTask, setNewTask] = useState<Partial<Task & { deadline?: Date }>>({})
+  const [newTask, setNewTask] = useState<Partial<Omit<Task, "deadline"> & { deadline?: Date }>>({})
   const [filterExam, setFilterExam] = useState<string>("all")
   const [filterSubject, setFilterSubject] = useState<string>("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)

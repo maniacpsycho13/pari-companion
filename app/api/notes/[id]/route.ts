@@ -3,11 +3,12 @@ import { updateNote, deleteNote } from '@/lib/db'
 import { Exam, NoteType } from '@/app/generated/prisma'
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
-    const note = await updateNote(params.id, {
+    const { id } = await params
+    const note = await updateNote(id, {
       title: body.title,
       content: body.content,
       subject: body.subject,
@@ -24,10 +25,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await deleteNote(params.id)
+    const { id } = await params
+    await deleteNote(id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting note:', error)
