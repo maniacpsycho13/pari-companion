@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,59 +22,22 @@ import { CalendarIcon, Plus, Clock, Bell, Edit, Trash2 } from "lucide-react"
 import { format, addDays, startOfWeek, endOfWeek } from "date-fns"
 
 interface StudySession {
-  id: number
+  id: string
   title: string
   subject: string
   exam: "UPSC" | "CAT"
   startTime: string
   endTime: string
-  date: Date
-  type: "study" | "revision" | "mock-test" | "break"
+  date: string
+  type: "STUDY" | "REVISION" | "MOCK_TEST" | "BREAK"
   reminder: boolean
   completed: boolean
 }
 
 export default function StudyPlanner() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [sessions, setSessions] = useState<StudySession[]>([
-    {
-      id: 1,
-      title: "Current Affairs Reading",
-      subject: "Current Affairs",
-      exam: "UPSC",
-      startTime: "09:00",
-      endTime: "11:00",
-      date: new Date(),
-      type: "study",
-      reminder: true,
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Quantitative Aptitude Practice",
-      subject: "Quantitative Aptitude",
-      exam: "CAT",
-      startTime: "14:00",
-      endTime: "16:00",
-      date: new Date(),
-      type: "study",
-      reminder: true,
-      completed: true,
-    },
-    {
-      id: 3,
-      title: "Polity Revision",
-      subject: "Polity",
-      exam: "UPSC",
-      startTime: "19:00",
-      endTime: "21:00",
-      date: new Date(),
-      type: "revision",
-      reminder: true,
-      completed: false,
-    },
-  ])
-
+  const [sessions, setSessions] = useState<StudySession[]>([])
+  const [loading, setLoading] = useState(true)
   const [newSession, setNewSession] = useState<Partial<StudySession>>({})
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">("daily")
@@ -85,45 +48,100 @@ export default function StudyPlanner() {
   }
 
   const sessionTypes = [
-    { value: "study", label: "Study Session", color: "bg-blue-100 text-blue-800" },
-    { value: "revision", label: "Revision", color: "bg-green-100 text-green-800" },
-    { value: "mock-test", label: "Mock Test", color: "bg-red-100 text-red-800" },
-    { value: "break", label: "Break", color: "bg-gray-100 text-gray-800" },
+    { value: "STUDY", label: "Study Session", color: "bg-blue-100 text-blue-800" },
+    { value: "REVISION", label: "Revision", color: "bg-green-100 text-green-800" },
+    { value: "MOCK_TEST", label: "Mock Test", color: "bg-red-100 text-red-800" },
+    { value: "BREAK", label: "Break", color: "bg-gray-100 text-gray-800" },
   ]
 
-  const addSession = () => {
-    if (newSession.title && newSession.subject && newSession.exam && newSession.startTime && newSession.endTime) {
-      const session: StudySession = {
-        id: Date.now(),
-        title: newSession.title,
-        subject: newSession.subject,
-        exam: newSession.exam as "UPSC" | "CAT",
-        startTime: newSession.startTime,
-        endTime: newSession.endTime,
-        date: selectedDate,
-        type: (newSession.type as "study" | "revision" | "mock-test" | "break") || "study",
-        reminder: newSession.reminder || false,
-        completed: false,
-      }
-      setSessions([...sessions, session])
-      setNewSession({})
-      setIsAddDialogOpen(false)
+  useEffect(() => {
+    fetchSessions()
+  }, [selectedDate])
+
+  const fetchSessions = async () => {
+    try {
+      const params = new URLSearchParams()
+      params.append("date", selectedDate.toISOString())
+
+      const response = await fetch(`/api/sessions?${params.toString()}`)
+      const data = await response.json()
+      setSessions(data)
+    } catch (error) {
+      console.error('Failed to fetch sessions:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const toggleSession = (id: number) => {
-    setSessions(
-      sessions.map((session) => (session.id === id ? { ...session, completed: !session.completed } : session)),
-    )
+  const addSession = async () => {
+    if (newSession.title && newSession.subject && newSession.exam && newSession.startTime && newSession.endTime) {
+      try {
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newSession.title,
+            subject: newSession.subject,
+            exam: newSession.exam,
+            startTime: newSession.startTime,
+            endTime: newSession.endTime,
+            date: selectedDate.toISOString(),
+            type: newSession.type || "STUDY",
+            reminder: newSession.reminder || false,
+          })
+        })
+
+        if (response.ok) {
+          const createdSession = await response.json()
+          setSessions([...sessions, createdSession])
+          setNewSession({})
+          setIsAddDialogOpen(false)
+        }
+      } catch (error) {
+        console.error('Failed to create session:', error)
+      }
+    }
   }
 
-  const deleteSession = (id: number) => {
-    setSessions(sessions.filter((session) => session.id !== id))
+  const toggleSession = async (id: string) => {
+    const session = sessions.find(s => s.id === id)
+    if (!session) return
+
+    try {
+      const response = await fetch(`/api/sessions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !session.completed })
+      })
+
+      if (response.ok) {
+        setSessions(
+          sessions.map((session) => (session.id === id ? { ...session, completed: !session.completed } : session))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to toggle session:', error)
+    }
+  }
+
+  const deleteSession = async (id: string) => {
+    try {
+      const response = await fetch(`/api/sessions/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setSessions(sessions.filter((session) => session.id !== id))
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error)
+    }
   }
 
   const getSessionsForDate = (date: Date) => {
+    const dateString = date.toDateString()
     return sessions
-      .filter((session) => session.date.toDateString() === date.toDateString())
+      .filter((session) => new Date(session.date).toDateString() === dateString)
       .sort((a, b) => a.startTime.localeCompare(b.startTime))
   }
 
@@ -146,6 +164,19 @@ export default function StudyPlanner() {
   const getTypeColor = (type: string) => {
     const typeObj = sessionTypes.find((t) => t.value === type)
     return typeObj?.color || "bg-gray-100 text-gray-800"
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading planner...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -233,9 +264,9 @@ export default function StudyPlanner() {
                   <div className="grid gap-2">
                     <Label htmlFor="type">Session Type</Label>
                     <Select
-                      value={newSession.type || "study"}
+                      value={newSession.type || "STUDY"}
                       onValueChange={(value) =>
-                        setNewSession({ ...newSession, type: value as "study" | "revision" | "mock-test" | "break" })
+                        setNewSession({ ...newSession, type: value as "STUDY" | "REVISION" | "MOCK_TEST" | "BREAK" })
                       }
                     >
                       <SelectTrigger>
@@ -455,4 +486,4 @@ export default function StudyPlanner() {
       </div>
     </div>
   )
-}
+} 

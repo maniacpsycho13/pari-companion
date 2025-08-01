@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tasks    Task[]
+  notes    Note[]
+  sessions StudySession[]
+  progress SubjectProgress[]
+
+  @@map("users")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  subject     String
+  exam        Exam
+  priority    Priority @default(MEDIUM)
+  deadline    DateTime?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  subject   String
+  exam      Exam
+  tags      String[] // Array of strings for tags
+  type      NoteType @default(CUSTOM)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model StudySession {
+  id        String      @id @default(cuid())
+  title     String
+  subject   String
+  exam      Exam
+  startTime String // Format: "HH:MM"
+  endTime   String // Format: "HH:MM"
+  date      DateTime
+  type      SessionType @default(STUDY)
+  reminder  Boolean     @default(false)
+  completed Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_sessions")
+}
+
+model SubjectProgress {
+  id               String @id @default(cuid())
+  name             String
+  exam             Exam
+  progress         Int    @default(0) // Percentage 0-100
+  totalTopics      Int    @default(0)
+  completedTopics  Int    @default(0)
+  hoursSpent       Int    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name, exam])
+  @@map("subject_progress")
+}
+
+model DailyStats {
+  id           String   @id @default(cuid())
+  date         DateTime @unique
+  studyHours   Int      @default(0)
+  tasksCompleted Int    @default(0)
+  notesCreated Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("daily_stats")
+}
+
+// Enums
+enum Exam {
+  UPSC
+  CAT
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NoteType {
+  LEARNING
+  SUMMARY
+  REVISION
+  CUSTOM
+}
+
+enum SessionType {
+  STUDY
+  REVISION
+  MOCK_TEST
+  BREAK
+}

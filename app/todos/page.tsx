@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,51 +24,21 @@ import { CalendarIcon, Plus, Trash2, Edit, Filter } from "lucide-react"
 import { format } from "date-fns"
 
 interface Task {
-  id: number
+  id: string
   title: string
   subject: string
   exam: "UPSC" | "CAT"
-  priority: "low" | "medium" | "high"
-  deadline?: Date
+  priority: "LOW" | "MEDIUM" | "HIGH"
+  deadline?: string
   completed: boolean
   description?: string
+  createdAt: string
 }
 
 export default function TodoManagement() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Current Affairs - January 2025",
-      subject: "Current Affairs",
-      exam: "UPSC",
-      priority: "high",
-      deadline: new Date(2025, 0, 15),
-      completed: false,
-      description: "Cover all major events from January 2025",
-    },
-    {
-      id: 2,
-      title: "Quantitative Aptitude - Percentages",
-      subject: "Quantitative Aptitude",
-      exam: "CAT",
-      priority: "medium",
-      deadline: new Date(2025, 0, 20),
-      completed: true,
-      description: "Complete all percentage problems and formulas",
-    },
-    {
-      id: 3,
-      title: "Polity - Fundamental Rights",
-      subject: "Polity",
-      exam: "UPSC",
-      priority: "high",
-      deadline: new Date(2025, 0, 18),
-      completed: false,
-      description: "Study Articles 12-35 in detail",
-    },
-  ])
-
-  const [newTask, setNewTask] = useState<Partial<Task>>({})
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [newTask, setNewTask] = useState<Partial<Task & { deadline?: Date }>>({})
   const [filterExam, setFilterExam] = useState<string>("all")
   const [filterSubject, setFilterSubject] = useState<string>("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
@@ -78,49 +48,111 @@ export default function TodoManagement() {
     CAT: ["Quantitative Aptitude", "Verbal Ability", "Logical Reasoning", "Data Interpretation"],
   }
 
-  const addTask = () => {
-    if (newTask.title && newTask.subject && newTask.exam) {
-      const task: Task = {
-        id: Date.now(),
-        title: newTask.title,
-        subject: newTask.subject,
-        exam: newTask.exam as "UPSC" | "CAT",
-        priority: newTask.priority || "medium",
-        deadline: newTask.deadline,
-        completed: false,
-        description: newTask.description,
-      }
-      setTasks([...tasks, task])
-      setNewTask({})
-      setIsAddDialogOpen(false)
+  useEffect(() => {
+    fetchTasks()
+  }, [filterExam, filterSubject])
+
+  const fetchTasks = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filterExam !== "all") params.append("exam", filterExam)
+      if (filterSubject !== "all") params.append("subject", filterSubject)
+
+      const response = await fetch(`/api/tasks?${params.toString()}`)
+      const data = await response.json()
+      setTasks(data)
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)))
+  const addTask = async () => {
+    if (newTask.title && newTask.subject && newTask.exam) {
+      try {
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newTask.title,
+            subject: newTask.subject,
+            exam: newTask.exam,
+            priority: newTask.priority || "MEDIUM",
+            deadline: newTask.deadline?.toISOString(),
+            description: newTask.description,
+          })
+        })
+
+        if (response.ok) {
+          const createdTask = await response.json()
+          setTasks([...tasks, createdTask])
+          setNewTask({})
+          setIsAddDialogOpen(false)
+        }
+      } catch (error) {
+        console.error('Failed to create task:', error)
+      }
+    }
   }
 
-  const deleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id))
+  const toggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id)
+    if (!task) return
+
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !task.completed })
+      })
+
+      if (response.ok) {
+        setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)))
+      }
+    } catch (error) {
+      console.error('Failed to toggle task:', error)
+    }
   }
 
-  const filteredTasks = tasks.filter((task) => {
-    const examMatch = filterExam === "all" || task.exam === filterExam
-    const subjectMatch = filterSubject === "all" || task.subject === filterSubject
-    return examMatch && subjectMatch
-  })
+  const deleteTask = async (id: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setTasks(tasks.filter((task) => task.id !== id))
+      }
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+    }
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high":
+      case "HIGH":
         return "destructive"
-      case "medium":
+      case "MEDIUM":
         return "default"
-      case "low":
+      case "LOW":
         return "secondary"
       default:
         return "default"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading tasks...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -194,16 +226,16 @@ export default function TodoManagement() {
                 <div className="grid gap-2">
                   <Label htmlFor="priority">Priority</Label>
                   <Select
-                    value={newTask.priority || "medium"}
-                    onValueChange={(value) => setNewTask({ ...newTask, priority: value as "low" | "medium" | "high" })}
+                    value={newTask.priority || "MEDIUM"}
+                    onValueChange={(value) => setNewTask({ ...newTask, priority: value as "LOW" | "MEDIUM" | "HIGH" })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -298,47 +330,65 @@ export default function TodoManagement() {
 
           <TabsContent value="all" className="space-y-4">
             <div className="grid gap-4">
-              {filteredTasks.map((task) => (
-                <Card key={task.id} className={`${task.completed ? "opacity-75" : ""}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <Checkbox
-                          checked={task.completed}
-                          onCheckedChange={() => toggleTask(task.id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <h3 className={`font-semibold ${task.completed ? "line-through text-gray-500" : ""}`}>
-                            {task.title}
-                          </h3>
-                          {task.description && <p className="text-sm text-gray-600 mt-1">{task.description}</p>}
-                          <div className="flex gap-2 mt-2">
-                            <Badge variant="outline">{task.exam}</Badge>
-                            <Badge variant="outline">{task.subject}</Badge>
-                            <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                            {task.deadline && <Badge variant="secondary">Due: {format(task.deadline, "MMM dd")}</Badge>}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
+              {tasks.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-gray-400 mb-4">📋</div>
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No tasks found</h3>
+                    <p className="text-gray-500 mb-4">Create your first task to get started</p>
+                    <Button onClick={() => setIsAddDialogOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Your First Task
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                tasks.map((task) => (
+                  <Card key={task.id} className={`${task.completed ? "opacity-75" : ""}`}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <Checkbox
+                            checked={task.completed}
+                            onCheckedChange={() => toggleTask(task.id)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <h3 className={`font-semibold ${task.completed ? "line-through text-gray-500" : ""}`}>
+                              {task.title}
+                            </h3>
+                            {task.description && <p className="text-sm text-gray-600 mt-1">{task.description}</p>}
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="outline">{task.exam}</Badge>
+                              <Badge variant="outline">{task.subject}</Badge>
+                              <Badge variant={getPriorityColor(task.priority)}>{task.priority.toLowerCase()}</Badge>
+                              {task.deadline && (
+                                <Badge variant="secondary">
+                                  Due: {format(new Date(task.deadline), "MMM dd")}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="UPSC" className="space-y-4">
             <div className="grid gap-4">
-              {filteredTasks
+              {tasks
                 .filter((task) => task.exam === "UPSC")
                 .map((task) => (
                   <Card key={task.id} className={`${task.completed ? "opacity-75" : ""}`}>
@@ -357,9 +407,11 @@ export default function TodoManagement() {
                             {task.description && <p className="text-sm text-gray-600 mt-1">{task.description}</p>}
                             <div className="flex gap-2 mt-2">
                               <Badge variant="outline">{task.subject}</Badge>
-                              <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                              <Badge variant={getPriorityColor(task.priority)}>{task.priority.toLowerCase()}</Badge>
                               {task.deadline && (
-                                <Badge variant="secondary">Due: {format(task.deadline, "MMM dd")}</Badge>
+                                <Badge variant="secondary">
+                                  Due: {format(new Date(task.deadline), "MMM dd")}
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -381,7 +433,7 @@ export default function TodoManagement() {
 
           <TabsContent value="CAT" className="space-y-4">
             <div className="grid gap-4">
-              {filteredTasks
+              {tasks
                 .filter((task) => task.exam === "CAT")
                 .map((task) => (
                   <Card key={task.id} className={`${task.completed ? "opacity-75" : ""}`}>
@@ -400,9 +452,11 @@ export default function TodoManagement() {
                             {task.description && <p className="text-sm text-gray-600 mt-1">{task.description}</p>}
                             <div className="flex gap-2 mt-2">
                               <Badge variant="outline">{task.subject}</Badge>
-                              <Badge variant={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                              <Badge variant={getPriorityColor(task.priority)}>{task.priority.toLowerCase()}</Badge>
                               {task.deadline && (
-                                <Badge variant="secondary">Due: {format(task.deadline, "MMM dd")}</Badge>
+                                <Badge variant="secondary">
+                                  Due: {format(new Date(task.deadline), "MMM dd")}
+                                </Badge>
                               )}
                             </div>
                           </div>

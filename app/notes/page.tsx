@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,57 +21,20 @@ import {
 import { FileText, Plus, Search, Tag, Edit, Trash2, BookOpen } from "lucide-react"
 
 interface Note {
-  id: number
+  id: string
   title: string
   content: string
   subject: string
   exam: "UPSC" | "CAT"
   tags: string[]
-  type: "learning" | "summary" | "revision" | "custom"
-  createdAt: Date
-  updatedAt: Date
+  type: "LEARNING" | "SUMMARY" | "REVISION" | "CUSTOM"
+  createdAt: string
+  updatedAt: string
 }
 
 export default function NotesSection() {
-  const [notes, setNotes] = useState<Note[]>([
-    {
-      id: 1,
-      title: "Fundamental Rights - Key Points",
-      content:
-        "Article 12-35 covers Fundamental Rights. Key points:\n1. Right to Equality (Art 14-18)\n2. Right to Freedom (Art 19-22)\n3. Right against Exploitation (Art 23-24)\n4. Right to Freedom of Religion (Art 25-28)\n5. Cultural and Educational Rights (Art 29-30)\n6. Right to Constitutional Remedies (Art 32)",
-      subject: "Polity",
-      exam: "UPSC",
-      tags: ["fundamental-rights", "constitution", "articles"],
-      type: "learning",
-      createdAt: new Date(2025, 0, 10),
-      updatedAt: new Date(2025, 0, 10),
-    },
-    {
-      id: 2,
-      title: "Percentage Formulas - Quick Reference",
-      content:
-        "Important percentage formulas:\n1. Percentage = (Part/Whole) × 100\n2. Increase% = (New-Old)/Old × 100\n3. Decrease% = (Old-New)/Old × 100\n4. Successive percentage: If two changes of a% and b%, final change = a + b + (ab/100)%",
-      subject: "Quantitative Aptitude",
-      exam: "CAT",
-      tags: ["formulas", "percentage", "quick-reference"],
-      type: "revision",
-      createdAt: new Date(2025, 0, 8),
-      updatedAt: new Date(2025, 0, 8),
-    },
-    {
-      id: 3,
-      title: "Current Affairs - January 2025 Summary",
-      content:
-        "Key events from January 2025:\n1. Economic Survey highlights\n2. Budget 2025 key announcements\n3. International relations updates\n4. Science and technology developments\n5. Awards and recognitions",
-      subject: "Current Affairs",
-      exam: "UPSC",
-      tags: ["january-2025", "budget", "economy"],
-      type: "summary",
-      createdAt: new Date(2025, 0, 12),
-      updatedAt: new Date(2025, 0, 12),
-    },
-  ])
-
+  const [notes, setNotes] = useState<Note[]>([])
+  const [loading, setLoading] = useState(true)
   const [newNote, setNewNote] = useState<Partial<Note>>({})
   const [searchTerm, setSearchTerm] = useState("")
   const [filterExam, setFilterExam] = useState<string>("all")
@@ -85,33 +49,73 @@ export default function NotesSection() {
   }
 
   const noteTypes = [
-    { value: "learning", label: "Learning Notes" },
-    { value: "summary", label: "Lecture Summary" },
-    { value: "revision", label: "Revision Points" },
-    { value: "custom", label: "Custom Notes" },
+    { value: "LEARNING", label: "Learning Notes" },
+    { value: "SUMMARY", label: "Lecture Summary" },
+    { value: "REVISION", label: "Revision Points" },
+    { value: "CUSTOM", label: "Custom Notes" },
   ]
 
-  const addNote = () => {
-    if (newNote.title && newNote.content && newNote.subject && newNote.exam) {
-      const note: Note = {
-        id: Date.now(),
-        title: newNote.title,
-        content: newNote.content,
-        subject: newNote.subject,
-        exam: newNote.exam as "UPSC" | "CAT",
-        tags: newNote.tags || [],
-        type: (newNote.type as "learning" | "summary" | "revision" | "custom") || "custom",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-      setNotes([note, ...notes])
-      setNewNote({})
-      setIsAddDialogOpen(false)
+  useEffect(() => {
+    fetchNotes()
+  }, [filterExam, filterSubject, filterType])
+
+  const fetchNotes = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filterExam !== "all") params.append("exam", filterExam)
+      if (filterSubject !== "all") params.append("subject", filterSubject)
+      if (filterType !== "all") params.append("type", filterType)
+
+      const response = await fetch(`/api/notes?${params.toString()}`)
+      const data = await response.json()
+      setNotes(data)
+    } catch (error) {
+      console.error('Failed to fetch notes:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const deleteNote = (id: number) => {
-    setNotes(notes.filter((note) => note.id !== id))
+  const addNote = async () => {
+    if (newNote.title && newNote.content && newNote.subject && newNote.exam) {
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newNote.title,
+            content: newNote.content,
+            subject: newNote.subject,
+            exam: newNote.exam,
+            tags: newNote.tags || [],
+            type: newNote.type || "CUSTOM",
+          })
+        })
+
+        if (response.ok) {
+          const createdNote = await response.json()
+          setNotes([createdNote, ...notes])
+          setNewNote({})
+          setIsAddDialogOpen(false)
+        }
+      } catch (error) {
+        console.error('Failed to create note:', error)
+      }
+    }
+  }
+
+  const deleteNote = async (id: string) => {
+    try {
+      const response = await fetch(`/api/notes/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setNotes(notes.filter((note) => note.id !== id))
+      }
+    } catch (error) {
+      console.error('Failed to delete note:', error)
+    }
   }
 
   const filteredNotes = notes.filter((note) => {
@@ -119,25 +123,35 @@ export default function NotesSection() {
       note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       note.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    const examMatch = filterExam === "all" || note.exam === filterExam
-    const subjectMatch = filterSubject === "all" || note.subject === filterSubject
-    const typeMatch = filterType === "all" || note.type === filterType
-    return searchMatch && examMatch && subjectMatch && typeMatch
+    return searchMatch
   })
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "learning":
+      case "LEARNING":
         return "bg-blue-100 text-blue-800"
-      case "summary":
+      case "SUMMARY":
         return "bg-green-100 text-green-800"
-      case "revision":
+      case "REVISION":
         return "bg-yellow-100 text-yellow-800"
-      case "custom":
+      case "CUSTOM":
         return "bg-purple-100 text-purple-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading notes...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -213,9 +227,9 @@ export default function NotesSection() {
                 <div className="grid gap-2">
                   <Label htmlFor="type">Note Type</Label>
                   <Select
-                    value={newNote.type || "custom"}
+                    value={newNote.type || "CUSTOM"}
                     onValueChange={(value) =>
-                      setNewNote({ ...newNote, type: value as "learning" | "summary" | "revision" | "custom" })
+                      setNewNote({ ...newNote, type: value as "LEARNING" | "SUMMARY" | "REVISION" | "CUSTOM" })
                     }
                   >
                     <SelectTrigger>
@@ -380,7 +394,7 @@ export default function NotesSection() {
                     ))}
                   </div>
                 )}
-                <p className="text-xs text-gray-500">Created: {note.createdAt.toLocaleDateString()}</p>
+                <p className="text-xs text-gray-500">Created: {new Date(note.createdAt).toLocaleDateString()}</p>
               </CardContent>
             </Card>
           ))}
@@ -437,8 +451,8 @@ export default function NotesSection() {
                     </div>
                   )}
                   <div className="mt-4 pt-4 border-t text-xs text-gray-500">
-                    <p>Created: {selectedNote.createdAt.toLocaleDateString()}</p>
-                    <p>Last updated: {selectedNote.updatedAt.toLocaleDateString()}</p>
+                    <p>Created: {new Date(selectedNote.createdAt).toLocaleDateString()}</p>
+                    <p>Last updated: {new Date(selectedNote.updatedAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </>
